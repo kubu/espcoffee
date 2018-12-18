@@ -134,10 +134,10 @@ def toggle_heater(action="toggle"):
 def keep_warm():
     timer_warm = KEEP_WARM_SAFE_LIMIT
     while timer_warm:
-        if (timer % 60 == 0):
+        if (timer_warm % 60 == 0):
             print (f"Keeping warm for {timer_warm} seconds... ")
-        sleep(1)
-        timer_warm -= 1
+            sleep(1)
+            timer_warm -= 1
     # keep warm limit reached, turning off heater
     print(f"Kept warm for {KEEP_WARM_SAFE_LIMIT} seconds, finished.")
     toggle_heater(0)
