@@ -18,7 +18,7 @@ KEEP_WARM_WATTAGE = 80      # threshold in Watts indicating that heater is on ke
 SENSOR_READ_INTERVAL = 6    # set on ESP device (seconds)
 
 # queue with power measurements
-power_reports = deque('0', maxlen=10)
+power_reports = deque([0], maxlen=10)
 timer = 0
 
 '''
@@ -27,7 +27,7 @@ MQTT callbacks
 
 
 def on_log(client, userdata, level, buf):
-    if (log_switch()):
+    if (log_status()):
         print ("\tlog: " + buf)
 
 
@@ -50,7 +50,7 @@ def on_message(client, userdata, msg):
 def on_message_power(client, userdata, msg):
     payload = int(msg.payload.decode())
     power_reports.append(payload)
-    print ("Power report: ", power_reports)
+    #print ("Power report: ", power_reports)
 
 
 '''
@@ -59,14 +59,14 @@ logs configuration and flow control
 
 
 def enable_logs(switch):
-    f = open("log_switch", "w")
+    f = open("log_status", "w")
     print ("Logs enabled:", switch)
     f.write(str(switch))
     f.close()
 
 
-def log_switch():
-    f = open("log_switch", "r")
+def log_status():
+    f = open("log_status", "r")
     logs_state = int(f.read())
     f.close()
     return logs_state
@@ -197,7 +197,6 @@ def brew(keepWarm=False):
         # toggle heater every TOGGLE_TIME
         if blooming_done and timer % TOGGLE_TIME == 0:
             toggle_heater("pause")
-
 
 
 # configure broker
