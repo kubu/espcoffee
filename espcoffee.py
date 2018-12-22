@@ -5,11 +5,11 @@ from sys import argv
 import paho.mqtt.client as mqtt
 
 # timer boundaries (seconds)
-BREW_START = 35                 # measured at 1100W
+BREW_START = 30                 # measured at 1100W
 BLOOM_TIME = 45                 # sleep cycle during blooming
 BLOOM_START = 15                # after first water drip
 TOGGLE_TIME = 25                # "on" time cycle
-TOGGLE_OFF_TIME = 7             # seconds during TOGGLE_TIME when heater is off, for slower coffee extraction
+TOGGLE_OFF_TIME = 5             # seconds during TOGGLE_TIME when heater is off, for slower coffee extraction
 HEAT_SAFE_LIMIT = 420           # 7 minutes, turns off when reached during normal brew (full heater power)
 KEEP_WARM_SAFE_LIMIT = 1800     # 30 minutes, turns off when reached during "keep warm" heater function
 
@@ -19,8 +19,6 @@ SENSOR_READ_INTERVAL = 6    # set on ESP device (seconds)
 
 # queue with power measurements
 power_reports = deque('0', maxlen=10)
-
-# timer
 timer = 0
 
 '''
@@ -51,8 +49,8 @@ def on_message(client, userdata, msg):
 
 def on_message_power(client, userdata, msg):
     payload = int(msg.payload.decode())
-    #print ("Received power raport: ", payload)
     power_reports.append(payload)
+    print ("Power report: ", power_reports)
 
 
 '''
@@ -95,6 +93,7 @@ def flow_control():
     client.loop_start()
     # subscribe for power measurements
     client.subscribe("espcoffee/power")
+
     # wait for acks
     sleep(1)
 
@@ -168,20 +167,6 @@ def brew(keepWarm=False):
             toggle_heater(0)
             return
 
-        # turn heater off for coffee blooming
-        if not blooming_done and (timer == BREW_START + BLOOM_START):
-            print (f"Blooming started, time elapsed: {timer}")
-            toggle_heater(0)
-        # turn heater on when blooming is finished
-        elif (timer == BREW_START + BLOOM_START + BLOOM_TIME):
-            print (f"Blooming finished, time elapsed: {timer}")
-            toggle_heater(1)
-            blooming_done = True
-
-        # toggle heater every TOGGLE_TIME
-        if blooming_done and timer % TOGGLE_TIME == 0:
-            toggle_heater("pause")
-
         # last power report indicates the state of machine
         if 0 < power_reports[-1] < KEEP_WARM_WATTAGE:
             if timer < BREW_START + BLOOM_START:
@@ -198,6 +183,21 @@ def brew(keepWarm=False):
                 print (f"Brewing finished, time elapsed {timer}. ")
                 toggle_heater(0)
             return
+
+        # turn heater off for coffee blooming
+        if not blooming_done and (timer == BREW_START + BLOOM_START):
+            print (f"Blooming started, time elapsed: {timer}")
+            toggle_heater(0)
+        # turn heater on when blooming is finished
+        elif (timer == BREW_START + BLOOM_START + BLOOM_TIME):
+            print (f"Blooming finished, time elapsed: {timer}")
+            toggle_heater(1)
+            blooming_done = True
+
+        # toggle heater every TOGGLE_TIME
+        if blooming_done and timer % TOGGLE_TIME == 0:
+            toggle_heater("pause")
+
 
 
 # configure broker
