@@ -15,7 +15,7 @@ KEEP_WARM_SAFE_LIMIT = 1800     # 30 minutes, turns off when reached during "kee
 
 # other
 KEEP_WARM_WATTAGE = 80      # threshold in Watts indicating that heater is on keep_warm setting
-SENSOR_READ_INTERVAL = 6    # set on ESP device (seconds)
+SENSOR_READ_INTERVAL = 1    # set on ESP device (seconds)
 
 # queue with power measurements
 power_reports = deque([0], maxlen=10)
@@ -120,11 +120,11 @@ machine handling
 def toggle_heater(action="toggle"):
     global timer
     if action == "pause":
-        print ("Heater: toggling off", timer)
+        print (f"Heater toggling off for {TOGGLE_OFF_TIME}s at {timer}s")
         client.publish("espcoffee/relay/0/set", 0)
         sleep(TOGGLE_OFF_TIME)
         timer += TOGGLE_OFF_TIME
-        print ("Heater: toggling on", timer)
+        print (f"Heater toggling on at {timer}s")
         client.publish("espcoffee/relay/0/set", 1)
     else:
         client.publish("espcoffee/relay/0/set", action)
@@ -134,16 +134,16 @@ def keep_warm():
     timer_warm = KEEP_WARM_SAFE_LIMIT
     while timer_warm:
         if (timer_warm % 60 == 0):
-            print (f"Keeping warm for {timer_warm} seconds... ")
-            sleep(1)
-            timer_warm -= 1
+            print (f"Keeping warm for {timer_warm}s... ")
+        sleep(1)
+        timer_warm -= 1
     # keep warm limit reached, turning off heater
-    print(f"Kept warm for {KEEP_WARM_SAFE_LIMIT} seconds, finished.")
+    print(f"Kept warm for {KEEP_WARM_SAFE_LIMIT}s, finished.")
     toggle_heater(0)
 
 
 def print_debug(timer):
-    if (timer % SENSOR_READ_INTERVAL == 0):
+    if (timer % 6 == 0):
         print (f"Power: {power_reports[-1]}W, timer: {timer}s")
 
 
@@ -163,7 +163,7 @@ def brew(keepWarm=False):
 
         # turn heater off when safe limit reached
         if (timer > HEAT_SAFE_LIMIT):
-            print (f"Safe limit reached, time elapsed: {timer}. ")
+            print (f"Safe limit reached, time elapsed: {timer}s. ")
             toggle_heater(0)
             return
 
@@ -180,17 +180,17 @@ def brew(keepWarm=False):
                 keep_warm()
             else:
                 # brewing is done, turning off heater
-                print (f"Brewing finished, time elapsed {timer}. ")
+                print (f"Brewing finished, time elapsed {timer}s. ")
                 toggle_heater(0)
             return
 
         # turn heater off for coffee blooming
         if not blooming_done and (timer == BREW_START + BLOOM_START):
-            print (f"Blooming started, time elapsed: {timer}")
+            print (f"Blooming started, time elapsed: {timer}s")
             toggle_heater(0)
         # turn heater on when blooming is finished
         elif (timer == BREW_START + BLOOM_START + BLOOM_TIME):
-            print (f"Blooming finished, time elapsed: {timer}")
+            print (f"Blooming finished, time elapsed: {timer}s")
             toggle_heater(1)
             blooming_done = True
 
